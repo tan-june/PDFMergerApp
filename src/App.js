@@ -1,123 +1,16 @@
 import React, { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import { useDropzone } from 'react-dropzone';
-import { DndProvider, useDrag, useDrop } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faArrowUp, faArrowDown, faTrash } from '@fortawesome/free-solid-svg-icons';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
-const ItemType = {
-  PDF: 'pdf',
-};
-
-const PDFItem = ({ pdf, index, movePdf, handlePageNumbersChange, deletePdf, totalFiles }) => {
-  const ref = React.useRef(null);
-  const [, drop] = useDrop({
-    accept: ItemType.PDF,
-    hover(item, monitor) {
-      if (!ref.current) {
-        return;
-      }
-      const dragIndex = item.index;
-      const hoverIndex = index;
-
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      const hoverMiddleY = (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      const clientOffset = monitor.getClientOffset();
-      const hoverClientY = clientOffset.y - hoverBoundingRect.top;
-
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-
-      movePdf(dragIndex, hoverIndex);
-      item.index = hoverIndex;
-    },
-  });
-
-  const [{ isDragging }, drag] = useDrag({
-    type: ItemType.PDF,
-    item: { type: ItemType.PDF, index },
-    collect: (monitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
-  });
-
-  drag(drop(ref));
-
-  return (
-    <tr ref={ref} style={{ opacity: isDragging ? 0.5 : 1 }}>
-      <td>{pdf.name}</td>
-      <td>{pdf.numPages}</td>
-      <td>
-        <input
-          required
-          type="text"
-          className="form-control"
-          placeholder="Enter page numbers or range (e.g., 1,2,3 or 1-3)"
-          value={pdf.pages}
-          onChange={(e) => handlePageNumbersChange(index, e.target.value)}
-        />
-      </td>
-      <td>
-        <button onClick={() => movePdf(index, index - 1)} disabled={index === 0} className="btn btn-link">
-          <FontAwesomeIcon icon={faArrowUp} />
-        </button>
-      </td>
-      <td>
-        <button onClick={() => movePdf(index, index + 1)} disabled={index === totalFiles - 1} className="btn btn-link">
-          <FontAwesomeIcon icon={faArrowDown} />
-        </button>
-      </td>
-      <td>
-        <button onClick={() => deletePdf(index)} className="btn btn-link text-danger">
-          <FontAwesomeIcon icon={faTrash} />
-        </button>
-      </td>
-    </tr>
-  );
-};
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faArrowUp, faArrowDown, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
 
 const PDFMerger = () => {
   const [pdfFiles, setPdfFiles] = useState([]);
   const [mergedPdfUrl, setMergedPdfUrl] = useState(null);
 
-  const onDrop = async (acceptedFiles) => {
-    const newPdfs = await Promise.all(
-      acceptedFiles.map(async (file) => {
-        const pdfBytes = await file.arrayBuffer();
-        const pdf = await PDFDocument.load(pdfBytes);
-        return {
-          file,
-          name: file.name,
-          pages: '',
-          numPages: pdf.getPageCount(),
-        };
-      })
-    );
-    setPdfFiles([...pdfFiles, ...newPdfs]);
-  };
-
-  const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: '.pdf', maxFiles: 5 });
-
-  const movePdf = (fromIndex, toIndex) => {
-    const updatedPdfs = Array.from(pdfFiles);
-    const [movedPdf] = updatedPdfs.splice(fromIndex, 1);
-    updatedPdfs.splice(toIndex, 0, movedPdf);
-    setPdfFiles(updatedPdfs);
-  };
-
   const deletePdf = (index) => {
-    const updatedPdfs = Array.from(pdfFiles);
+    const updatedPdfs = [...pdfFiles];
     updatedPdfs.splice(index, 1);
     setPdfFiles(updatedPdfs);
   };
@@ -128,15 +21,35 @@ const PDFMerger = () => {
     setPdfFiles(updatedPdfs);
   };
 
+  const moveUp = (index) => {
+    if (index >= 0) {
+      const updatedPdfs = [...pdfFiles];
+      const temp = updatedPdfs[index];
+      updatedPdfs[index] = updatedPdfs[index - 1];
+      updatedPdfs[index - 1] = temp;
+      setPdfFiles(updatedPdfs);
+    }
+  };
+
+  const moveDown = (index) => {
+    if (index < pdfFiles.length - 1) {
+      const updatedPdfs = [...pdfFiles];
+      const temp = updatedPdfs[index];
+      updatedPdfs[index] = updatedPdfs[index + 1];
+      updatedPdfs[index + 1] = temp;
+      setPdfFiles(updatedPdfs);
+    }
+  };
+
   const mergePdfs = async () => {
     const mergedPdf = await PDFDocument.create();
     for (let i = 0; i < pdfFiles.length; i++) {
       const pdfBytes = await pdfFiles[i].file.arrayBuffer();
       const pdf = await PDFDocument.load(pdfBytes);
       const pages = pdfFiles[i].pages
-        ? pdfFiles[i].pages.split(',').flatMap(range => {
+        ? pdfFiles[i].pages.split(',').flatMap((range) => {
             if (range.includes('-')) {
-              const [start, end] = range.split('-').map(num => parseInt(num, 10) - 1);
+              const [start, end] = range.split('-').map((num) => parseInt(num, 10) - 1);
               return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
             }
             return [parseInt(range, 10) - 1];
@@ -151,54 +64,83 @@ const PDFMerger = () => {
     setMergedPdfUrl(url);
   };
 
+  const { getRootProps, getInputProps } = useDropzone({ accept: '.pdf', maxFiles: 5 });
+
   return (
-    <DndProvider backend={HTML5Backend}>
-      <div className="container py-5">
-        <div {...getRootProps({ className: 'border border-primary p-5 text-center mb-4' })}>
-          <input {...getInputProps()} className="form-control" />
-          <p className="text-muted">Drag 'n' drop some PDFs here, or click to select files</p>
-        </div>
-        <div className="table-responsive">
-          <table className="table table-striped">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th># of Pages</th>
-                <th>Pages</th>
-                <th>Up</th>
-                <th>Down</th>
-                <th>Delete</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pdfFiles.map((pdf, index) => (
-                <PDFItem
-                  key={index}
-                  pdf={pdf}
-                  index={index}
-                  movePdf={movePdf}
-                  handlePageNumbersChange={handlePageNumbersChange}
-                  deletePdf={deletePdf}
-                  totalFiles={pdfFiles.length}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <center>
-          <button onClick={mergePdfs} className="btn btn-primary" disabled={pdfFiles.length === 0}>
-            Merge PDFs
-          </button>
-          {mergedPdfUrl && (
-            <div className="mt-4">
-              <a href={mergedPdfUrl} download="merged.pdf" className="btn btn-success">
-                Download Merged PDF
-              </a>
-            </div>
-          )}
-        </center>
+    <div className="container py-5">
+      <div {...getRootProps({ className: 'border border-primary p-5 text-center mb-4' })}>
+        <input {...getInputProps()} className="form-control" />
+        <p className="text-muted">Click to select files...</p>
       </div>
-    </DndProvider>
+      <div className="table-responsive">
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th># of Pages</th>
+              <th>Pages</th>
+              <th>Actions</th>
+              <th>Delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pdfFiles.map((pdf, index) => (
+              <tr key={index}>
+                <td>{pdf.name}</td>
+                <td>{pdf.numPages}</td>
+                <td>
+                  <input
+                    required
+                    type="text"
+                    className="form-control"
+                    placeholder="Enter page numbers or range (e.g., 1,2,3 or 1-3)"
+                    value={pdf.pages}
+                    onChange={(e) => handlePageNumbersChange(index, e.target.value)}
+                  />
+                </td>
+                <td>
+                  <div className="btn-group" role="group" aria-label="Move PDF">
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => moveUp(index)}
+                      disabled={index === 0}
+                    >
+                      <FontAwesomeIcon icon={faArrowUp} />
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => moveDown(index)}
+                      disabled={index === pdfFiles.length - 1}
+                    >
+                      <FontAwesomeIcon icon={faArrowDown} />
+                    </button>
+                  </div>
+                </td>
+                <td>
+                  <button onClick={() => deletePdf(index)} className="btn btn-link text-danger">
+                    <FontAwesomeIcon icon={faTrashAlt} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <center>
+        <button onClick={mergePdfs} className="btn btn-primary" disabled={pdfFiles.length === 0}>
+          Merge PDFs
+        </button>
+        {mergedPdfUrl && (
+          <div className="mt-4">
+            <a href={mergedPdfUrl} download="merged.pdf" className="btn btn-success">
+              Download Merged PDF
+            </a>
+          </div>
+        )}
+      </center>
+    </div>
   );
 };
 
