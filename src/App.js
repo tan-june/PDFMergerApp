@@ -1,4 +1,4 @@
-import React, { useState} from 'react';
+import React, { useState } from 'react';
 import { PDFDocument } from 'pdf-lib';
 import { useDropzone } from 'react-dropzone';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -155,39 +155,45 @@ const PDFMerger = () => {
     <DndProvider backend={HTML5Backend}>
       <div className="container py-5">
         <div {...getRootProps({ className: 'border border-primary p-5 text-center mb-4' })}>
-          <input {...getInputProps()} />
+          <input {...getInputProps()} className="form-control" />
           <p className="text-muted">Drag 'n' drop some PDFs here, or click to select files</p>
         </div>
-        <table className="table table-striped">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th># of Pages</th>
-              <th>Pages</th>
-              <th>Move Up</th>
-              <th>Move Down</th>
-              <th>Delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pdfFiles.map((pdf, index) => (
-              <PDFItem
-                key={index}
-                pdf={pdf}
-                index={index}
-                movePdf={movePdf}
-                handlePageNumbersChange={handlePageNumbersChange}
-                deletePdf={deletePdf}
-                totalFiles={pdfFiles.length}
-              />
-            ))}
-          </tbody>
-        </table>
+        <div className="table-responsive">
+          <table className="table table-striped">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th># of Pages</th>
+                <th>Pages</th>
+                <th>Up</th>
+                <th>Down</th>
+                <th>Delete</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pdfFiles.map((pdf, index) => (
+                <PDFItem
+                  key={index}
+                  pdf={pdf}
+                  index={index}
+                  movePdf={movePdf}
+                  handlePageNumbersChange={handlePageNumbersChange}
+                  deletePdf={deletePdf}
+                  totalFiles={pdfFiles.length}
+                />
+              ))}
+            </tbody>
+          </table>
+        </div>
         <center>
-          <button onClick={mergePdfs} className="btn btn-primary" disabled={pdfFiles.length === 0}>Merge PDFs</button>
+          <button onClick={mergePdfs} className="btn btn-primary" disabled={pdfFiles.length === 0}>
+            Merge PDFs
+          </button>
           {mergedPdfUrl && (
             <div className="mt-4">
-              <a href={mergedPdfUrl} download="merged.pdf" className="btn btn-success">Download Merged PDF</a>
+              <a href={mergedPdfUrl} download="merged.pdf" className="btn btn-success">
+                Download Merged PDF
+              </a>
             </div>
           )}
         </center>
@@ -197,7 +203,6 @@ const PDFMerger = () => {
 };
 
 const App = () => {
-
   return (
     <div className="d-flex flex-column align-items-center min-vh-100 bg-light">
       <div className="container text-center py-5">
@@ -205,10 +210,10 @@ const App = () => {
           <h1 className="display-4">PDF Merger</h1>
           <p className="lead">Merge your PDFs seamlessly (without ads)!</p>
         </header>
-      <PDFMerger />
+        <PDFMerger />
       </div>
       <footer className="mt-auto text-muted py-3">
-        <p>&copy; 2024 Your Name. All rights reserved.</p>
+        <p>&copy; 2024 Tanmay Singhal. All rights reserved.</p>
       </footer>
     </div>
   );
