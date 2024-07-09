@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState} from 'react';
 import { PDFDocument } from 'pdf-lib';
 import { useDropzone } from 'react-dropzone';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
@@ -64,7 +64,7 @@ const PDFItem = ({ pdf, index, movePdf, handlePageNumbersChange, deletePdf, tota
           type="text"
           className="form-control"
           placeholder="Enter page numbers or range (e.g., 1,2,3 or 1-3)"
-          value={pdf.pages || ''}
+          value={pdf.pages}
           onChange={(e) => handlePageNumbersChange(index, e.target.value)}
         />
       </td>
@@ -89,7 +89,6 @@ const PDFItem = ({ pdf, index, movePdf, handlePageNumbersChange, deletePdf, tota
 
 const PDFMerger = () => {
   const [pdfFiles, setPdfFiles] = useState([]);
-  const [pageNumbers, setPageNumbers] = useState({});
   const [mergedPdfUrl, setMergedPdfUrl] = useState(null);
 
   const onDrop = async (acceptedFiles) => {
@@ -124,8 +123,9 @@ const PDFMerger = () => {
   };
 
   const handlePageNumbersChange = (index, pages) => {
-    const updatedPages = { ...pageNumbers, [index]: pages };
-    setPageNumbers(updatedPages);
+    const updatedPdfs = [...pdfFiles];
+    updatedPdfs[index].pages = pages;
+    setPdfFiles(updatedPdfs);
   };
 
   const mergePdfs = async () => {
@@ -133,8 +133,8 @@ const PDFMerger = () => {
     for (let i = 0; i < pdfFiles.length; i++) {
       const pdfBytes = await pdfFiles[i].file.arrayBuffer();
       const pdf = await PDFDocument.load(pdfBytes);
-      const pages = pageNumbers[i]
-        ? pageNumbers[i].split(',').flatMap(range => {
+      const pages = pdfFiles[i].pages
+        ? pdfFiles[i].pages.split(',').flatMap(range => {
             if (range.includes('-')) {
               const [start, end] = range.split('-').map(num => parseInt(num, 10) - 1);
               return Array.from({ length: end - start + 1 }, (_, idx) => start + idx);
@@ -197,23 +197,15 @@ const PDFMerger = () => {
 };
 
 const App = () => {
-  const [showPDFMerger, setShowPDFMerger] = useState(false);
-
-  const togglePDFMerger = () => {
-    setShowPDFMerger(!showPDFMerger);
-  };
 
   return (
     <div className="d-flex flex-column align-items-center min-vh-100 bg-light">
       <div className="container text-center py-5">
         <header className="bg-primary text-white p-4 rounded mb-3 shadow">
           <h1 className="display-4">PDF Merger</h1>
-          <p className="lead">Merge your PDFs seamlessly!</p>
+          <p className="lead">Merge your PDFs seamlessly (without ads)!</p>
         </header>
-        <button className="btn btn-outline-primary mb-4" onClick={togglePDFMerger}>
-          {showPDFMerger ? 'Hide PDF Merger' : 'Show PDF Merger'}
-        </button>
-        {showPDFMerger && <PDFMerger />}
+      <PDFMerger />
       </div>
       <footer className="mt-auto text-muted py-3">
         <p>&copy; 2024 Your Name. All rights reserved.</p>
